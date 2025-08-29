@@ -50,7 +50,7 @@ st.markdown("### 📍 Detect your current location")
 lat, lon = None, None
 city = None
 
-if st.button("Use GPS"):
+if st.button("Use GPS", key="gps_button_main"):
     coords = streamlit_js_eval(js_expressions="navigator.geolocation.getCurrentPosition", key="get_position")
     if coords and "coords" in coords:
         lat = coords["coords"]["latitude"]
