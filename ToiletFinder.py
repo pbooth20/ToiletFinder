@@ -19,23 +19,33 @@ if st.button("Use GPS", key="gps_button_main"):
     coords = streamlit_js_eval(
         js_expressions="""
         new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => resolve({
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude
-                }),
-                (err) => reject(err)
-            );
+            try {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const lat = pos.coords.latitude;
+                        const lon = pos.coords.longitude;
+                        resolve({ latitude: lat, longitude: lon });
+                    },
+                    (err) => {
+                        resolve({ error: err.message });
+                    }
+                );
+            } catch (e) {
+                resolve({ error: "JS exception: " + e.message });
+            }
         })
         """,
         key="get_position"
     )
-    st.write("Raw GPS response:", coords)  # Debug output
+
+    st.write("Raw GPS response:", coords)
 
     if coords and "latitude" in coords and "longitude" in coords:
         lat = coords["latitude"]
         lon = coords["longitude"]
         st.success(f"GPS location detected: {lat:.4f}, {lon:.4f}")
+    elif coords and "error" in coords:
+        st.error(f"GPS error: {coords['error']}")
     else:
         st.error("Could not get GPS location. Try allowing location access or use manual entry.")
 else:
