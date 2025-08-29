@@ -12,50 +12,48 @@ st.markdown("Find nearby public toilets in major European cities or based on you
 
 # Initialize variables
 lat, lon = None, None
-city = None
 
-st.markdown("### 📍 Detect your current location")
+# Location mode toggle
+mode = st.radio("Choose location mode:", ["GPS", "Manual"], horizontal=True)
 
 # GPS detection block
 coords = None
-if st.button("Use GPS", key="gps_button_main"):
-    coords = streamlit_js_eval(
-        js_expressions="""
-        new Promise((resolve, reject) => {
-            if (!navigator.geolocation) {
-                resolve({ error: "Geolocation not supported by this browser." });
-            } else {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-                    },
-                    (err) => {
-                        resolve({ error: "Geolocation error: " + err.message });
-                    }
-                );
-            }
-        })
-        """,
-        key="get_position"
-    )
+if mode == "GPS":
+    st.markdown("### 📍 Detect your current location")
+    if st.button("Use GPS", key="gps_button_main"):
+        coords = streamlit_js_eval(
+            js_expressions="""
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    Streamlit.setComponentValue({ latitude: lat, longitude: lon });
+                },
+                (err) => {
+                    Streamlit.setComponentValue({ error: err.message });
+                }
+            );
+            """,
+            key="get_position"
+        )
 
-# Always show raw response for debugging
-st.markdown("#### 🛠️ Debug: Raw GPS Response")
-st.write(coords)
+    # Always show raw response for debugging
+    st.markdown("#### 🛠️ Debug: Raw GPS Response")
+    st.write(coords)
 
-# Handle GPS result
-if coords and isinstance(coords, dict):
-    if "latitude" in coords and "longitude" in coords:
-        lat = coords["latitude"]
-        lon = coords["longitude"]
-        st.success(f"✅ GPS location detected: {lat:.4f}, {lon:.4f}")
-    elif "error" in coords:
-        st.error(f"⚠️ GPS error: {coords['error']}")
-    else:
-        st.error("❌ Could not get GPS location. Try allowing location access or use manual entry.")
+    # Handle GPS result
+    if coords and isinstance(coords, dict):
+        if "latitude" in coords and "longitude" in coords:
+            lat = coords["latitude"]
+            lon = coords["longitude"]
+            st.success(f"✅ GPS location detected: {lat:.4f}, {lon:.4f}")
+        elif "error" in coords:
+            st.error(f"⚠️ GPS error: {coords['error']}")
+        else:
+            st.error("❌ Could not get GPS location. Try allowing location access or use manual entry.")
 
 # Manual fallback
-if lat is None or lon is None:
+if mode == "Manual" or (lat is None and lon is None):
     st.markdown("### 🏙️ Manual location input")
     city = st.text_input("Enter a city (e.g. London, Paris, Rome):", key="city_input")
 
@@ -76,18 +74,18 @@ if lat is None or lon is None:
         else:
             st.error("❌ Could not find coordinates for that city.")
 
-# Manual override for testing
-st.markdown("### 🧪 Manual GPS override (for testing)")
-manual_lat = st.text_input("Latitude", value="", key="manual_lat")
-manual_lon = st.text_input("Longitude", value="", key="manual_lon")
+    # Manual override for testing
+    st.markdown("### 🧪 Manual GPS override (optional)")
+    manual_lat = st.text_input("Latitude", value="", key="manual_lat")
+    manual_lon = st.text_input("Longitude", value="", key="manual_lon")
 
-if manual_lat and manual_lon:
-    try:
-        lat = float(manual_lat)
-        lon = float(manual_lon)
-        st.info(f"📍 Using manual coordinates: {lat:.4f}, {lon:.4f}")
-    except ValueError:
-        st.warning("Invalid manual coordinates. Please enter valid numbers.")
+    if manual_lat and manual_lon:
+        try:
+            lat = float(manual_lat)
+            lon = float(manual_lon)
+            st.info(f"📍 Using manual coordinates: {lat:.4f}, {lon:.4f}")
+        except ValueError:
+            st.warning("Invalid manual coordinates. Please enter valid numbers.")
 
 # Radius slider
 radius = st.slider("Search radius (meters)", min_value=500, max_value=5000, value=1500, step=100)
