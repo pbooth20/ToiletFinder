@@ -59,7 +59,7 @@ if st.button("Use GPS", key="gps_button_main"):
     else:
         st.error("Could not get GPS location. Try allowing location access or use manual entry.")
 else:
-    city = st.text_input("Enter a city (e.g. London, Paris, Rome):")
+    city = st.text_input("Enter a city (e.g. London, Paris, Rome):", key="city_input")
 
     def get_coordinates(city_name):
         geolocator = Nominatim(user_agent="toilet_finder", timeout=5)
