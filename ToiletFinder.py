@@ -17,6 +17,7 @@ city = None
 st.markdown("### 📍 Detect your current location")
 
 # GPS detection block
+coords = None
 if st.button("Use GPS", key="gps_button_main"):
     coords = streamlit_js_eval(
         js_expressions="""
@@ -38,19 +39,24 @@ if st.button("Use GPS", key="gps_button_main"):
         key="get_position"
     )
 
-    st.write("📡 Full JS response:", coords)
+# Always show raw response for debugging
+st.markdown("#### 🛠️ Debug: Raw GPS Response")
+st.write(coords)
 
-    if coords and "latitude" in coords and "longitude" in coords:
+# Handle GPS result
+if coords and isinstance(coords, dict):
+    if "latitude" in coords and "longitude" in coords:
         lat = coords["latitude"]
         lon = coords["longitude"]
         st.success(f"✅ GPS location detected: {lat:.4f}, {lon:.4f}")
-    elif coords and "error" in coords:
+    elif "error" in coords:
         st.error(f"⚠️ GPS error: {coords['error']}")
     else:
         st.error("❌ Could not get GPS location. Try allowing location access or use manual entry.")
 
-# Manual city input fallback
-else:
+# Manual fallback
+if lat is None or lon is None:
+    st.markdown("### 🏙️ Manual location input")
     city = st.text_input("Enter a city (e.g. London, Paris, Rome):", key="city_input")
 
     def get_coordinates(city_name):
@@ -69,6 +75,19 @@ else:
             st.success(f"📍 Coordinates for {city}: {lat:.4f}, {lon:.4f}")
         else:
             st.error("❌ Could not find coordinates for that city.")
+
+# Manual override for testing
+st.markdown("### 🧪 Manual GPS override (for testing)")
+manual_lat = st.text_input("Latitude", value="", key="manual_lat")
+manual_lon = st.text_input("Longitude", value="", key="manual_lon")
+
+if manual_lat and manual_lon:
+    try:
+        lat = float(manual_lat)
+        lon = float(manual_lon)
+        st.info(f"📍 Using manual coordinates: {lat:.4f}, {lon:.4f}")
+    except ValueError:
+        st.warning("Invalid manual coordinates. Please enter valid numbers.")
 
 # Radius slider
 radius = st.slider("Search radius (meters)", min_value=500, max_value=5000, value=1500, step=100)
