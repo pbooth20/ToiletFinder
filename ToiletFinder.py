@@ -4,7 +4,7 @@ import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
-import streamlit.components.v1 as components
+from streamlit_js_eval import streamlit_js_eval
 
 st.set_page_config(layout="wide")
 st.title("🚻 Public Toilet Finder")
@@ -17,49 +17,46 @@ lat, lon = None, None
 mode = st.radio("Choose location mode:", ["GPS", "Manual"], horizontal=True)
 
 # GPS detection block
+coords = None
 if mode == "GPS":
     st.markdown("### 📍 Detect your current location")
 
-    # Inject HTML/JS block
-    components.html(
-        """
-        <script>
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const coords = {
-                    lat: position.coords.latitude,
-                    lon: position.coords.longitude
-                };
-                window.parent.postMessage(coords, "*");
-            },
-            (error) => {
-                window.parent.postMessage({ error: error.message }, "*");
-            }
-        );
-        </script>
-        """,
-        height=0
-    )
+    if st.button("Use GPS", key="gps_button_main"):
+        coords = streamlit_js_eval(
+            js_expressions="""
+            (() => {
+                if (!navigator.geolocation) {
+                    return { error: "Geolocation not supported by this browser." };
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const lat = pos.coords.latitude;
+                        const lon = pos.coords.longitude;
+                        Streamlit.setComponentValue({ latitude: lat, longitude: lon });
+                    },
+                    (err) => {
+                        Streamlit.setComponentValue({ error: err.message });
+                    }
+                );
+            })();
+            """,
+            key="get_position"
+        )
 
-    # Listen for GPS data via query params
-    raw_coords = st.query_params
-
-    # Debug output
+    # Always show raw response for debugging
     st.markdown("#### 🛠️ Debug: Raw GPS Response")
-    st.write(raw_coords)
+    st.write(coords)
 
-    # Extract lat/lon if available
-    if "lat" in raw_coords and "lon" in raw_coords:
-        try:
-            lat = float(raw_coords["lat"][0])
-            lon = float(raw_coords["lon"][0])
+    # Handle GPS result
+    if coords and isinstance(coords, dict):
+        if "latitude" in coords and "longitude" in coords:
+            lat = coords["latitude"]
+            lon = coords["longitude"]
             st.success(f"✅ GPS location detected: {lat:.4f}, {lon:.4f}")
-        except ValueError:
-            st.error("❌ Invalid GPS data received.")
-    elif "error" in raw_coords:
-        st.error(f"⚠️ GPS error: {raw_coords['error'][0]}")
-    else:
-        st.info("Waiting for GPS data...")
+        elif "error" in coords:
+            st.error(f"⚠️ GPS error: {coords['error']}")
+        else:
+            st.error("❌ Could not get GPS location. Try allowing location access or use manual entry.")
 
 # Manual fallback
 if mode == "Manual" or (lat is None and lon is None):
