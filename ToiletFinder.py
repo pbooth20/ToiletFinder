@@ -20,16 +20,21 @@ if st.button("Use GPS", key="gps_button_main"):
         js_expressions="""
         new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
-                (pos) => resolve(pos),
+                (pos) => resolve({
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude
+                }),
                 (err) => reject(err)
             );
         })
         """,
         key="get_position"
     )
-    if coords and "coords" in coords:
-        lat = coords["coords"]["latitude"]
-        lon = coords["coords"]["longitude"]
+    st.write("Raw GPS response:", coords)  # Debug output
+
+    if coords and "latitude" in coords and "longitude" in coords:
+        lat = coords["latitude"]
+        lon = coords["longitude"]
         st.success(f"GPS location detected: {lat:.4f}, {lon:.4f}")
     else:
         st.error("Could not get GPS location. Try allowing location access or use manual entry.")
