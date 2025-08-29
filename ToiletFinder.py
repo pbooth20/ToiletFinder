@@ -28,12 +28,9 @@ use_current_location = st.checkbox("Use my current location")
 lat, lon = None, None
 city = None
 
-use_gps = st.checkbox("Use my phone's GPS location")
+st.markdown("### 📍 Detect your current location")
 
-lat, lon = None, None
-city = None
-
-if use_gps:
+if st.button("Use GPS"):
     coords = streamlit_js_eval(js_expressions="navigator.geolocation.getCurrentPosition", key="get_position")
     if coords and "coords" in coords:
         lat = coords["coords"]["latitude"]
@@ -44,22 +41,25 @@ if use_gps:
 else:
     city = st.text_input("Enter a city (e.g. London, Paris, Rome):")
 
-    def get_coordinates(city_name):
-        geolocator = Nominatim(user_agent="toilet_finder", timeout=5)
-        try:
-            location = geolocator.geocode(city_name)
-            if location:
-                return location.latitude, location.longitude
-        except Exception as e:
-            st.error(f"Geocoding failed: {e}")
-        return None, None
 
-    if city:
-        lat, lon = get_coordinates(city)
-        if lat and lon:
-            st.success(f"Coordinates for {city}: {lat:.4f}, {lon:.4f}")
-        else:
-            st.error("Could not find coordinates for that city.")
+lat, lon = None, None
+city = None
+
+st.markdown("### 📍 Detect your current location")
+
+lat, lon = None, None
+city = None
+
+if st.button("Use GPS"):
+    coords = streamlit_js_eval(js_expressions="navigator.geolocation.getCurrentPosition", key="get_position")
+    if coords and "coords" in coords:
+        lat = coords["coords"]["latitude"]
+        lon = coords["coords"]["longitude"]
+        st.success(f"GPS location detected: {lat:.4f}, {lon:.4f}")
+    else:
+        st.error("Could not get GPS location. Try allowing location access or use manual entry.")
+else:
+    city = st.text_input("Enter a city (e.g. London, Paris, Rome):")
 
     def get_coordinates(city_name):
         geolocator = Nominatim(user_agent="toilet_finder", timeout=5)
