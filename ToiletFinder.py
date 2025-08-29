@@ -42,8 +42,7 @@ if mode == "GPS":
     )
 
     # Listen for GPS data via query params
-    query_params = st.experimental_get_query_params()
-    raw_coords = st.experimental_get_query_params()
+    raw_coords = st.query_params
 
     # Debug output
     st.markdown("#### 🛠️ Debug: Raw GPS Response")
