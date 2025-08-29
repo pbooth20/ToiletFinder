@@ -10,44 +10,46 @@ st.set_page_config(layout="wide")
 st.title("🚻 Public Toilet Finder")
 st.markdown("Find nearby public toilets in major European cities or based on your current location.")
 
+# Initialize variables
 lat, lon = None, None
 city = None
 
 st.markdown("### 📍 Detect your current location")
 
+# GPS detection block
 if st.button("Use GPS", key="gps_button_main"):
     coords = streamlit_js_eval(
         js_expressions="""
         new Promise((resolve, reject) => {
-            try {
+            if (!navigator.geolocation) {
+                resolve({ error: "Geolocation not supported by this browser." });
+            } else {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
-                        const lat = pos.coords.latitude;
-                        const lon = pos.coords.longitude;
-                        resolve({ latitude: lat, longitude: lon });
+                        resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
                     },
                     (err) => {
-                        resolve({ error: err.message });
+                        resolve({ error: "Geolocation error: " + err.message });
                     }
                 );
-            } catch (e) {
-                resolve({ error: "JS exception: " + e.message });
             }
         })
         """,
         key="get_position"
     )
 
-    st.write("Raw GPS response:", coords)
+    st.write("📡 Full JS response:", coords)
 
     if coords and "latitude" in coords and "longitude" in coords:
         lat = coords["latitude"]
         lon = coords["longitude"]
-        st.success(f"GPS location detected: {lat:.4f}, {lon:.4f}")
+        st.success(f"✅ GPS location detected: {lat:.4f}, {lon:.4f}")
     elif coords and "error" in coords:
-        st.error(f"GPS error: {coords['error']}")
+        st.error(f"⚠️ GPS error: {coords['error']}")
     else:
-        st.error("Could not get GPS location. Try allowing location access or use manual entry.")
+        st.error("❌ Could not get GPS location. Try allowing location access or use manual entry.")
+
+# Manual city input fallback
 else:
     city = st.text_input("Enter a city (e.g. London, Paris, Rome):", key="city_input")
 
@@ -64,12 +66,14 @@ else:
     if city:
         lat, lon = get_coordinates(city)
         if lat and lon:
-            st.success(f"Coordinates for {city}: {lat:.4f}, {lon:.4f}")
+            st.success(f"📍 Coordinates for {city}: {lat:.4f}, {lon:.4f}")
         else:
-            st.error("Could not find coordinates for that city.")
+            st.error("❌ Could not find coordinates for that city.")
 
+# Radius slider
 radius = st.slider("Search radius (meters)", min_value=500, max_value=5000, value=1500, step=100)
 
+# Query Overpass API
 def query_toilets(lat, lon, radius):
     overpass_url = "http://overpass-api.de/api/interpreter"
     query = f"""
@@ -88,6 +92,7 @@ def query_toilets(lat, lon, radius):
         st.error(f"Error querying Overpass API: {e}")
         return []
 
+# Display map
 def display_map(toilets, lat, lon):
     m = folium.Map(location=[lat, lon], zoom_start=15)
 
@@ -114,10 +119,11 @@ def display_map(toilets, lat, lon):
 
     st_folium(m, width=700, height=500)
 
+# Trigger search and map display
 if lat and lon:
     toilets = query_toilets(lat, lon, radius)
     if toilets:
-        st.write(f"Found {len(toilets)} public toilets nearby.")
+        st.write(f"🚽 Found {len(toilets)} public toilets nearby.")
         display_map(toilets, lat, lon)
     else:
-        st.warning("No public toilets found nearby. Try a different location or increase the search radius.")
+        st.warning("😕 No public toilets found nearby. Try a different location or increase the search radius.")
